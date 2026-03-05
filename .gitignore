@@ -5,3 +5,9 @@ __pycache__/
 # Dolt database files (added by bd init)
 .dolt/
 *.db
+
+# Log files (may contain local paths)
+*.log
+
+# Lockfiles
+claudeguard_launcher.lock
