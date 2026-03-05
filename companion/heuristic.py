@@ -4,6 +4,7 @@ import logging
 import time
 from dataclasses import dataclass, field
 from enum import Enum
+from typing import ClassVar
 
 logger = logging.getLogger("claude_monitor.heuristic")
 
@@ -30,7 +31,7 @@ class HeuristicState:
     idle_since: float | None = None
     # Track recent CPU samples for debugging/logging
     recent_cpu_samples: list[float] = field(default_factory=list)
-    MAX_SAMPLES: int = 30
+    MAX_SAMPLES: ClassVar[int] = 30
 
     def add_sample(self, cpu: float):
         self.recent_cpu_samples.append(cpu)

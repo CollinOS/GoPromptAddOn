@@ -58,9 +58,9 @@ frame:SetScript("OnEvent", function(self, event, arg1)
         -- Initialize PlayerState (read current combat/instance state)
         ClaudeGuard.PlayerState.Init()
 
-        -- Read SavedVariables
-        if ClaudeGuardDB and ClaudeGuardDB.status then
-            currentStatus = ClaudeGuardDB.status
+        -- Read status from CompanionData.lua (written by companion script)
+        if CLAUDEGUARD_COMPANION_STATUS then
+            currentStatus = CLAUDEGUARD_COMPANION_STATUS
         else
             -- No data from companion yet — default to working (don't block)
             currentStatus = "working"

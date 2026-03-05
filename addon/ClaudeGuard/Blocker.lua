@@ -17,8 +17,6 @@ local blockerFrame = CreateFrame("Frame", "ClaudeGuardBlockerFrame", UIParent)
 blockerFrame:SetFrameStrata("TOOLTIP")
 blockerFrame:SetAllPoints(UIParent)
 blockerFrame:EnableMouse(true)
-blockerFrame:EnableKeyboard(true)
-blockerFrame:SetPropagateKeyboardInput(false)
 blockerFrame:Hide()
 
 -- Dark background overlay
@@ -36,7 +34,7 @@ mainText:SetJustifyH("CENTER")
 -- Subtitle text
 local subText = blockerFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
 subText:SetPoint("TOP", mainText, "BOTTOM", 0, -16)
-subText:SetText("Give Claude a task, then /reload to dismiss.")
+subText:SetText("Give Claude a task — this will dismiss automatically.")
 subText:SetTextColor(0.7, 0.7, 0.7)
 
 -- Icon (using built-in WoW texture)
@@ -83,9 +81,13 @@ snoozeBtn:SetScript("OnClick", function()
     DoSnooze()
 end)
 
--- Eat all key presses (frame has keyboard enabled + propagation disabled)
-blockerFrame:SetScript("OnKeyDown", function(self, key)
-    -- Do nothing — input is consumed
+-- Reload button — lets the user trigger /reload from the overlay
+local reloadBtn = CreateFrame("Button", "ClaudeGuardReloadBtn", blockerFrame, "UIPanelButtonTemplate")
+reloadBtn:SetSize(200, 30)
+reloadBtn:SetPoint("TOP", snoozeBtn, "BOTTOM", 0, -8)
+reloadBtn:SetText("Reload UI")
+reloadBtn:SetScript("OnClick", function()
+    ReloadUI()
 end)
 
 function Blocker.Show()

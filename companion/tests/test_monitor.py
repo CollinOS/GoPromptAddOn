@@ -3,7 +3,7 @@
 from pathlib import Path
 
 import pytest
-from companion.claude_monitor import load_config, saved_variables_path
+from companion.claude_monitor import load_config, companion_data_path
 
 
 class TestLoadConfig:
@@ -39,8 +39,8 @@ class TestLoadConfig:
         assert config["reload_delay_seconds"] == 30
 
 
-class TestSavedVariablesPath:
+class TestCompanionDataPath:
     def test_path_construction(self):
         config = {"wow_path": "C:/WoW/_classic_", "account_name": "MYACCOUNT"}
-        path = saved_variables_path(config)
-        assert path == Path("C:/WoW/_classic_/WTF/Account/MYACCOUNT/SavedVariables/ClaudeGuard.lua")
+        path = companion_data_path(config)
+        assert path == Path("C:/WoW/_classic_/Interface/AddOns/ClaudeGuard/CompanionData.lua")

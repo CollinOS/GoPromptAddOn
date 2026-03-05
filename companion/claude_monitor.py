@@ -32,10 +32,10 @@ def load_config(config_path: Path | None = None) -> dict:
     return config
 
 
-def saved_variables_path(config: dict) -> Path:
-    """Return the full path to the ClaudeGuard SavedVariables file."""
-    return (Path(config["wow_path"]) / "WTF" / "Account" /
-            config["account_name"] / "SavedVariables" / "ClaudeGuard.lua")
+def companion_data_path(config: dict) -> Path:
+    """Return the full path to the CompanionData.lua file in the addon directory."""
+    return (Path(config["wow_path"]) / "Interface" / "AddOns" /
+            "ClaudeGuard" / "CompanionData.lua")
 
 
 def run_monitor_loop(config: dict) -> None:
@@ -47,7 +47,7 @@ def run_monitor_loop(config: dict) -> None:
         poll_interval_seconds=config["poll_interval_seconds"],
     ))
     keystroke_sender = create_keystroke_sender()
-    sv_path = saved_variables_path(config)
+    sv_path = companion_data_path(config)
     poll_interval = config["poll_interval_seconds"]
     reload_delay = config["reload_delay_seconds"]
     last_written_status: ClaudeStatus | None = None

@@ -11,7 +11,6 @@ logger = logging.getLogger("claude_monitor.keystroke_sender")
 
 # Windows API constants
 user32 = ctypes.windll.user32
-kernel32 = ctypes.windll.kernel32
 
 INPUT_KEYBOARD = 1
 KEYEVENTF_KEYUP = 0x0002
@@ -23,6 +22,18 @@ VK_ESCAPE = 0x1B
 SW_RESTORE = 9
 
 # Struct definitions for SendInput
+# The union must include all input types so sizeof(INPUT) matches what Windows expects.
+# On x64: MOUSEINPUT is the largest member (32 bytes), making INPUT 40 bytes total.
+class MOUSEINPUT(ctypes.Structure):
+    _fields_ = [
+        ("dx", ctypes.wintypes.LONG),
+        ("dy", ctypes.wintypes.LONG),
+        ("mouseData", ctypes.wintypes.DWORD),
+        ("dwFlags", ctypes.wintypes.DWORD),
+        ("time", ctypes.wintypes.DWORD),
+        ("dwExtraInfo", ctypes.POINTER(ctypes.c_ulong)),
+    ]
+
 class KEYBDINPUT(ctypes.Structure):
     _fields_ = [
         ("wVk", ctypes.wintypes.WORD),
@@ -32,9 +43,20 @@ class KEYBDINPUT(ctypes.Structure):
         ("dwExtraInfo", ctypes.POINTER(ctypes.c_ulong)),
     ]
 
+class HARDWAREINPUT(ctypes.Structure):
+    _fields_ = [
+        ("uMsg", ctypes.wintypes.DWORD),
+        ("wParamL", ctypes.wintypes.WORD),
+        ("wParamH", ctypes.wintypes.WORD),
+    ]
+
 class INPUT(ctypes.Structure):
     class _INPUT_UNION(ctypes.Union):
-        _fields_ = [("ki", KEYBDINPUT)]
+        _fields_ = [
+            ("mi", MOUSEINPUT),
+            ("ki", KEYBDINPUT),
+            ("hi", HARDWAREINPUT),
+        ]
     _fields_ = [
         ("type", ctypes.wintypes.DWORD),
         ("union", _INPUT_UNION),
@@ -131,6 +153,9 @@ class WindowsKeystrokeSender(KeystrokeSender):
         hwnd = self._wow_hwnd
         logger.info("Sending /reload to WoW window (hwnd=%s)", hwnd)
 
+        # Remember the currently focused window so we can restore it after
+        prev_foreground = user32.GetForegroundWindow()
+
         # Bring WoW to foreground
         if user32.IsIconic(hwnd):
             user32.ShowWindow(hwnd, SW_RESTORE)
@@ -151,6 +176,11 @@ class WindowsKeystrokeSender(KeystrokeSender):
 
         # Enter — send the command
         _press_key(VK_RETURN)
+
+        # Restore the previously focused window
+        if prev_foreground and prev_foreground != hwnd:
+            time.sleep(0.1)
+            user32.SetForegroundWindow(prev_foreground)
 
         logger.info("Reload command sent")
         return True

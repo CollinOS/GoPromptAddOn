@@ -11,15 +11,16 @@ from companion.heuristic import ClaudeStatus
 logger = logging.getLogger("claude_monitor.savedvariables")
 
 LUA_TEMPLATE = """\
-ClaudeGuardDB = {{
-\t["status"] = "{status}",
-\t["lastUpdate"] = {timestamp},
-}}
+-- CompanionData.lua
+-- Written by the companion script. DO NOT EDIT.
+-- WoW loads this file on /reload, reading the current status.
+CLAUDEGUARD_COMPANION_STATUS = "{status}"
+CLAUDEGUARD_COMPANION_TIMESTAMP = {timestamp}
 """
 
 
 def format_saved_variables(status: ClaudeStatus, timestamp: int | None = None) -> str:
-    """Format a ClaudeGuardDB Lua table string."""
+    """Format the CompanionData.lua content."""
     if timestamp is None:
         timestamp = int(time.time())
     return LUA_TEMPLATE.format(status=status.value, timestamp=timestamp)

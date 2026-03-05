@@ -3,12 +3,9 @@
 import json
 import threading
 import time
-from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-import pytest
 from companion.claude_monitor import load_config, run_monitor_loop
-from companion.heuristic import ClaudeStatus
 from companion.keystroke_sender import KeystrokeSender
 
 
@@ -150,11 +147,11 @@ class TestReloadOnTransition:
         t.start()
         time.sleep(1.5)
 
-        # Should have written the SavedVariables file with "closed"
-        sv_path = (tmp_path / "WTF" / "Account" / "TEST" /
-                   "SavedVariables" / "ClaudeGuard.lua")
-        assert sv_path.exists()
-        content = sv_path.read_text()
+        # Should have written the CompanionData file with "closed"
+        data_path = (tmp_path / "Interface" / "AddOns" /
+                     "ClaudeGuard" / "CompanionData.lua")
+        assert data_path.exists()
+        content = data_path.read_text()
         assert '"closed"' in content
 
     @patch("companion.claude_monitor.create_keystroke_sender")
@@ -206,9 +203,9 @@ class TestReloadOnTransition:
         t.start()
         time.sleep(1.5)
 
-        sv_path = (tmp_path / "WTF" / "Account" / "TEST" /
-                   "SavedVariables" / "ClaudeGuard.lua")
-        assert sv_path.exists()
-        content = sv_path.read_text()
+        data_path = (tmp_path / "Interface" / "AddOns" /
+                     "ClaudeGuard" / "CompanionData.lua")
+        assert data_path.exists()
+        content = data_path.read_text()
         assert '"working"' in content
         assert len(fake_sender.reload_calls) == 0
