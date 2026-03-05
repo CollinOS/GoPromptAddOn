@@ -1,6 +1,7 @@
 ## Interface: 11508, 20504
 ## Title: ClaudeGuard
 ## Notes: Blocks gameplay when Claude Code is idle. Get back to work.
+## SavedVariables: ClaudeGuardSettings
 ## Version: 1.0.0
 CompanionData.lua
 PlayerState.lua
