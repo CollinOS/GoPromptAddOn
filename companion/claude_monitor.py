@@ -9,6 +9,7 @@ import time
 from pathlib import Path
 
 from companion.heuristic import ClaudeStatus, HeuristicConfig, IdleHeuristic
+from companion.keystroke_sender import create_keystroke_sender
 from companion.process_detector import create_detector
 from companion.savedvariables import write_saved_variables
 
@@ -26,6 +27,8 @@ def load_config(config_path: Path | None = None) -> dict:
     for key in required:
         if key not in config:
             raise KeyError(f"Missing required config key: {key}")
+    # Default for reload_delay_seconds if not present (backwards compat)
+    config.setdefault("reload_delay_seconds", 10)
     return config
 
 
@@ -36,20 +39,27 @@ def saved_variables_path(config: dict) -> Path:
 
 
 def run_monitor_loop(config: dict) -> None:
-    """Main monitor loop: detect Claude, evaluate heuristic, write on transitions."""
+    """Main monitor loop: detect Claude, evaluate heuristic, write and reload on transitions."""
     detector = create_detector()
     heuristic = IdleHeuristic(config=HeuristicConfig(
         cpu_threshold_percent=config["cpu_threshold_percent"],
         idle_grace_seconds=config["idle_grace_seconds"],
         poll_interval_seconds=config["poll_interval_seconds"],
     ))
+    keystroke_sender = create_keystroke_sender()
     sv_path = saved_variables_path(config)
     poll_interval = config["poll_interval_seconds"]
+    reload_delay = config["reload_delay_seconds"]
     last_written_status: ClaudeStatus | None = None
 
+    # Pending reload state: when we transition to idle/closed, we schedule a
+    # delayed reload. This tracks when the reload should fire.
+    pending_reload_at: float | None = None
+
     logger.info("SavedVariables path: %s", sv_path)
-    logger.info("Poll interval: %ss, CPU threshold: %.1f%%, Grace period: %ss",
-                poll_interval, config["cpu_threshold_percent"], config["idle_grace_seconds"])
+    logger.info("Poll interval: %ss, CPU threshold: %.1f%%, Grace period: %ss, Reload delay: %ss",
+                poll_interval, config["cpu_threshold_percent"],
+                config["idle_grace_seconds"], reload_delay)
 
     while True:
         try:
@@ -65,13 +75,35 @@ def run_monitor_loop(config: dict) -> None:
             # Evaluate heuristic
             status = heuristic.update(cpu)
 
-            # Write on state transitions only
+            # Handle state transitions
             if status != last_written_status:
+                prev = last_written_status
                 logger.info("State transition: %s -> %s",
-                            last_written_status.value if last_written_status else "none",
+                            prev.value if prev else "none",
                             status.value)
                 write_saved_variables(sv_path, status)
                 last_written_status = status
+
+                is_becoming_idle = status in (ClaudeStatus.IDLE, ClaudeStatus.CLOSED)
+                is_becoming_active = status == ClaudeStatus.WORKING
+
+                if is_becoming_active:
+                    # Unblocking the player — send reload immediately
+                    pending_reload_at = None
+                    logger.info("Claude is working — sending reload immediately")
+                    keystroke_sender.send_reload()
+
+                elif is_becoming_idle:
+                    # Blocking transition — schedule delayed reload
+                    pending_reload_at = time.monotonic() + reload_delay
+                    logger.info("Claude is %s — reload scheduled in %ss",
+                                status.value, reload_delay)
+
+            # Check if a pending delayed reload should fire
+            if pending_reload_at is not None and time.monotonic() >= pending_reload_at:
+                logger.info("Delayed reload firing now")
+                keystroke_sender.send_reload()
+                pending_reload_at = None
 
             time.sleep(poll_interval)
 

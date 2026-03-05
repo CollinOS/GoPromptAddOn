@@ -3,5 +3,6 @@
   "account_name": "YOUR_ACCOUNT",
   "poll_interval_seconds": 2,
   "cpu_threshold_percent": 3.0,
-  "idle_grace_seconds": 5
+  "idle_grace_seconds": 5,
+  "reload_delay_seconds": 10
 }

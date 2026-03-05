@@ -1,4 +1,4 @@
-"""Tests for the monitor loop's state transition and write logic."""
+"""Tests for config loading and path construction."""
 
 from pathlib import Path
 
@@ -21,6 +21,22 @@ class TestLoadConfig:
         config_file.write_text('{"wow_path": "C:/WoW"}')
         with pytest.raises(KeyError, match="account_name"):
             load_config(config_file)
+
+    def test_reload_delay_defaults(self, tmp_path):
+        config_file = tmp_path / "config.json"
+        config_file.write_text('{"wow_path": "C:/WoW", "account_name": "TEST", '
+                               '"poll_interval_seconds": 2, "cpu_threshold_percent": 3.0, '
+                               '"idle_grace_seconds": 5}')
+        config = load_config(config_file)
+        assert config["reload_delay_seconds"] == 10
+
+    def test_reload_delay_from_config(self, tmp_path):
+        config_file = tmp_path / "config.json"
+        config_file.write_text('{"wow_path": "C:/WoW", "account_name": "TEST", '
+                               '"poll_interval_seconds": 2, "cpu_threshold_percent": 3.0, '
+                               '"idle_grace_seconds": 5, "reload_delay_seconds": 30}')
+        config = load_config(config_file)
+        assert config["reload_delay_seconds"] == 30
 
 
 class TestSavedVariablesPath:
