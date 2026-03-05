@@ -18,6 +18,12 @@ KEYEVENTF_UNICODE = 0x0004
 
 VK_RETURN = 0x0D
 VK_ESCAPE = 0x1B
+VK_CONTROL = 0x11
+VK_A = 0x41
+
+# Common movement keys (WASD + arrows + Q/E for strafe)
+MOVEMENT_VKS = [0x57, 0x41, 0x53, 0x44, 0x51, 0x45,  # W A S D Q E
+                0x25, 0x26, 0x27, 0x28]                # Arrow keys
 
 SW_RESTORE = 9
 
@@ -151,16 +157,18 @@ class WindowsKeystrokeSender(KeystrokeSender):
             return False
 
         hwnd = self._wow_hwnd
+
+        # Only send reload if WoW is already the foreground window
+        current_foreground = user32.GetForegroundWindow()
+        if current_foreground != hwnd:
+            logger.info("WoW is not the foreground window, skipping reload")
+            return False
+
         logger.info("Sending /reload to WoW window (hwnd=%s)", hwnd)
-
-        # Remember the currently focused window so we can restore it after
-        prev_foreground = user32.GetForegroundWindow()
-
-        # Bring WoW to foreground
-        if user32.IsIconic(hwnd):
-            user32.ShowWindow(hwnd, SW_RESTORE)
-        user32.SetForegroundWindow(hwnd)
         time.sleep(0.15)
+
+        # Release any held movement keys to prevent stuck movement after reload
+        _send_inputs([_make_key_input(vk, KEYEVENTF_KEYUP) for vk in MOVEMENT_VKS])
 
         # Escape — close any open chat/menu
         _press_key(VK_ESCAPE)
@@ -168,19 +176,23 @@ class WindowsKeystrokeSender(KeystrokeSender):
 
         # Enter — open chat box
         _press_key(VK_RETURN)
-        time.sleep(0.1)
+        time.sleep(0.15)
 
-        # Type /reload
+        # Ctrl+A — select all text (clears any chars from held movement keys)
+        _send_inputs([
+            _make_key_input(VK_CONTROL),
+            _make_key_input(VK_A),
+            _make_key_input(VK_A, KEYEVENTF_KEYUP),
+            _make_key_input(VK_CONTROL, KEYEVENTF_KEYUP),
+        ])
+        time.sleep(0.05)
+
+        # Type /reload (replaces any selected text)
         _type_string("/reload")
         time.sleep(0.05)
 
         # Enter — send the command
         _press_key(VK_RETURN)
-
-        # Restore the previously focused window
-        if prev_foreground and prev_foreground != hwnd:
-            time.sleep(0.1)
-            user32.SetForegroundWindow(prev_foreground)
 
         logger.info("Reload command sent")
         return True
