@@ -4,5 +4,9 @@
   "poll_interval_seconds": 2,
   "cpu_threshold_percent": 8.0,
   "idle_grace_seconds": 5,
-  "reload_delay_seconds": 10
+  "reload_delay_seconds": 10,
+  "battlenet_path": "C:/Program Files (x86)/Battle.net/Battle.net Launcher.exe",
+  "wow_process_name": "WowClassic.exe",
+  "wow_detection_timeout_minutes": 30,
+  "wow_exit_grace_seconds": 60
 }

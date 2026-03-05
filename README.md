@@ -17,6 +17,25 @@ ClaudeGuard has two parts:
 - Python 3.10+ with `psutil`
 - World of Warcraft (Classic Anniversary Edition or TBC Classic)
 - Windows or Linux
+- Optional: `pywin32` (for desktop shortcut creation)
+
+## Quick Start (Launcher)
+
+The easiest way to use ClaudeGuard — a single shortcut handles everything:
+
+1. Install the addon and companion (see below)
+2. Configure `companion/config.json`
+3. Create a desktop shortcut:
+   ```bash
+   python companion/create_shortcut.py
+   ```
+4. Double-click **"ClaudeGuard WoW"** on your desktop
+
+The launcher will:
+- Start the companion script in the background
+- Open Battle.net
+- Wait for you to launch WoW
+- Automatically shut everything down when you close WoW
 
 ## Installation
 
@@ -50,9 +69,11 @@ Edit `companion/config.json`:
   "wow_path": "C:/Program Files (x86)/World of Warcraft/_anniversary_",
   "account_name": "YOUR_ACCOUNT",
   "poll_interval_seconds": 2,
-  "cpu_threshold_percent": 3.0,
+  "cpu_threshold_percent": 8.0,
   "idle_grace_seconds": 5,
-  "reload_delay_seconds": 10
+  "reload_delay_seconds": 10,
+  "battlenet_path": "C:/Program Files (x86)/Battle.net/Battle.net Launcher.exe",
+  "wow_process_name": "WowClassic.exe"
 }
 ```
 
@@ -60,11 +81,17 @@ Edit `companion/config.json`:
 
 ### 4. Run
 
+**Option A — Launcher (recommended):**
+```bash
+python companion/create_shortcut.py   # one-time setup
+# Then use the desktop shortcut
+```
+
+**Option B — Manual:**
 ```bash
 python -m companion.claude_monitor --debug
 ```
-
-Then launch WoW. The addon will appear in your AddOns list at character select.
+Then launch WoW separately. The addon will appear in your AddOns list at character select.
 
 ## Configuration Reference
 
@@ -73,9 +100,13 @@ Then launch WoW. The addon will appear in your AddOns list at character select.
 | `wow_path` | string | — | Path to your WoW installation directory |
 | `account_name` | string | — | WoW account folder name (from `WTF/Account/`) |
 | `poll_interval_seconds` | number | 2 | How often to check Claude's CPU usage |
-| `cpu_threshold_percent` | number | 3.0 | CPU% above which Claude is considered "working" |
+| `cpu_threshold_percent` | number | 8.0 | CPU% above which Claude is considered "working" |
 | `idle_grace_seconds` | number | 5 | Seconds of low CPU before transitioning to "idle" |
 | `reload_delay_seconds` | number | 10 | Delay before sending /reload on working→idle transitions |
+| `battlenet_path` | string | `C:/.../Battle.net Launcher.exe` | Path to Battle.net launcher |
+| `wow_process_name` | string | `WowClassic.exe` | WoW process name to monitor |
+| `wow_detection_timeout_minutes` | number | 30 | Minutes to wait for WoW to start |
+| `wow_exit_grace_seconds` | number | 60 | Seconds to wait before shutting down after WoW exits |
 
 ## Companion Script Flags
 
@@ -103,7 +134,7 @@ Then launch WoW. The addon will appear in your AddOns list at character select.
 
 - **Reload disruption**: State transitions trigger a `/reload` in WoW, which briefly interrupts the UI. The companion delays idle-transition reloads by 10 seconds (configurable) to minimize disruption.
 - **Single WoW window**: The companion targets the first WoW window found. Multiple WoW instances are not supported.
-- **Focus stealing**: The companion must briefly focus the WoW window to send keystrokes. It restores the previous foreground window afterward, but there may be a brief flicker.
+- **WoW must be focused**: The companion only sends `/reload` when WoW is the foreground window. If you're in another app, the reload is skipped until you switch back to WoW.
 - **No macOS support**: Currently Windows and Linux only.
 
 ## Troubleshooting
@@ -128,6 +159,11 @@ Then launch WoW. The addon will appear in your AddOns list at character select.
 - Try `/reload` manually in WoW
 
 **Overlay doesn't dismiss:**
-- The companion sends `/reload` automatically when Claude starts working
+- The companion sends `/reload` automatically when Claude starts working (only when WoW is focused)
 - You can also click the "Reload UI" button on the overlay
 - Check companion logs for "sending reload immediately" messages
+
+**Launcher issues:**
+- Check `companion/launcher.log` for errors
+- If the launcher won't start, delete `%TEMP%/claudeguard_launcher.lock` (stale lockfile)
+- Make sure `battlenet_path` in config.json points to your Battle.net installation
